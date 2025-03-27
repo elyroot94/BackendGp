@@ -23,4 +23,6 @@ public class Trajet {
     private LocalDateTime dateDepart;
     private LocalDateTime dateArriveeEstimee;
     private List<Coli> listeColis; // Stocker les colis en tant que sous-documents
+    private Double capaciteMaxKilos; // Utilisé uniquement si role = "GP"
+    private Double kilosDisponibles;
 }

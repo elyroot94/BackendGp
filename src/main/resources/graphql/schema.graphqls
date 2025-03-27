@@ -1,0 +1,46 @@
+type Coli {
+    id: ID!
+    numeroSuivi: String!
+    poids: Float!
+    description: String
+    statut: String!
+    dateCreation: DateTime!
+    dateLivraison: DateTime
+}
+
+type Trajet {
+    id: ID!
+    pointDepart: String!
+    pointArrivee: String!
+    dateDepart: DateTime!
+    dateArriveeEstimee: DateTime
+    capaciteMaxKilos: Float!
+    kilosDisponibles: Float!
+    listeColis: [Coli]
+}
+
+input CreateTrajetInput {
+    pointDepart: String!
+    pointArrivee: String!
+    dateDepart: DateTime!
+    dateArriveeEstimee: DateTime
+    capaciteMaxKilos: Float!
+    kilosDisponibles: Float!
+}
+
+input SearchTrajetInput {
+    pointDepart: String
+    pointArrivee: String
+    dateDepart: DateTime
+}
+
+type Query {
+    trajets(searchInput: SearchTrajetInput): [Trajet!]!
+    trajet(id: ID!): Trajet
+}
+
+type Mutation {
+    createTrajet(input: CreateTrajetInput!): Trajet!
+}
+
+scalar DateTime 
