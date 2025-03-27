@@ -35,8 +35,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn sonar:sonar \
-          -Dsonar.projectKey=gestion-colis \
-          -Dsonar.organization=votre-organisation \
+          -Dsonar.projectKey=elyroot94_BackendGp \
+          -Dsonar.organization=elyroot94 \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
   
