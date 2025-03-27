@@ -12,17 +12,28 @@ services:
       - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/gestion_colis?authSource=admin
     depends_on:
       - mongodb
+    networks:
+      - gestion-colis-network
 
   mongodb:
     image: mongo:latest
     container_name: gestion-colis-mongodb
     restart: always
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
       - MONGO_INITDB_DATABASE=gestion_colis
+    networks:
+      - gestion-colis-network
+
+networks:
+  gestion-colis-network:
+    driver: bridge
 
 volumes:
   mongodb_data:
+    driver: local
