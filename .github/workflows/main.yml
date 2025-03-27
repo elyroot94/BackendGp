@@ -58,16 +58,26 @@ jobs:
           username: ${{ secrets.TEST_SERVER_USERNAME }}
           key: ${{ secrets.TEST_SERVER_SSH_KEY }}
           script: |
+            mkdir -p /opt/gestion-colis
             cd /opt/gestion-colis
             
-            # Création/Mise à jour du fichier .env
-            cat > .env << EOL
+            # Nettoyer les conteneurs existants
+            docker compose down || true
+            
+            # Créer le fichier .env
+            cat << EOF > .env
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             TAG=${{ github.sha }}
             MONGO_USERNAME=${{ secrets.MONGO_USERNAME }}
             MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
-            EOL
+            EOF
             
-            # Déploiement avec Docker Compose
-            docker compose pull
-            docker compose up -d
+            # Vérifier les variables (masquer les mots de passe)
+            grep -v PASSWORD .env
+            
+            # Forcer le pull des images et recréer les conteneurs
+            docker compose pull --quiet
+            docker compose up -d --force-recreate
+            
+            # Vérifier le statut
+            docker compose ps

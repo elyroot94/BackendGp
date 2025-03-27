@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: ${DOCKER_USERNAME}/gestion-colis:${TAG:-latest}
@@ -16,7 +14,7 @@ services:
       - gestion-colis-network
 
   mongodb:
-    image: mongo:latest
+    image: 'mongo:latest'
     container_name: gestion-colis-mongodb
     restart: always
     ports:
@@ -24,9 +22,9 @@ services:
     volumes:
       - mongodb_data:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_INITDB_DATABASE=gestion_colis
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: gestion_colis
     networks:
       - gestion-colis-network
 
@@ -36,4 +34,3 @@ networks:
 
 volumes:
   mongodb_data:
-    driver: local
