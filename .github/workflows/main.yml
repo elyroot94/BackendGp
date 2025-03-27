@@ -1,0 +1,72 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Étape 1: Checkout du code
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Important pour SonarQube
+      
+      # Étape 2: Configuration de Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Étape 3: Build et Tests
+      - name: Build and Run Tests
+        run: |
+          mvn clean verify
+          
+      # Étape 4: Analyse SonarQube
+      - name: SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn sonar:sonar \
+          -Dsonar.projectKey=gestion-colis \
+          -Dsonar.organization=votre-organisation \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+  
+      # Étape 6: Déploiement sur VPS
+      - name: Copy docker-compose to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/opt/gestion-colis/"
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          script: |
+            cd /opt/gestion-colis
+            
+            # Création/Mise à jour du fichier .env
+            cat > .env << EOL
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            TAG=${{ github.sha }}
+            MONGO_USERNAME=${{ secrets.MONGO_USERNAME }}
+            MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
+            EOL
+            
+            # Déploiement avec Docker Compose
+            docker-compose pull
+            docker-compose up -d
