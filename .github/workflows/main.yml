@@ -38,7 +38,8 @@ jobs:
           -Dsonar.projectKey=elyroot94_BackendGp \
           -Dsonar.organization=elyroot94 \
           -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+          -Dsonar.analysis.mode=publish 
   
       # Étape 6: Déploiement sur VPS
       - name: Copy docker-compose to VPS
