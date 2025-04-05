@@ -14,7 +14,7 @@ jobs:
         image: mongo:7.0.2         # Spécifie la version MongoDB Docker
         ports:
           - 27017:27017            # Définit le port pour MongoDB
-       
+
     steps:
       # Étape 1: Checkout du code
       - name: Checkout code
