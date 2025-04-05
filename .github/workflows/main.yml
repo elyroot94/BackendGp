@@ -14,7 +14,7 @@ jobs:
         image: mongo:latest
         ports:
           - 27017:27017
-        options: --bind_ip_all  # Permet à MongoDB d'accepter des connexions de tout hôte
+
 
     steps:
       # Étape 1: Checkout du code
