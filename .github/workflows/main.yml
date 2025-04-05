@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongodb:
-        image: mongo:7.0.2         # Spécifie la version MongoDB Docker
+        image: mongo:latest         # Spécifie la version MongoDB Docker
         ports:
           - 27017:27017            # Définit le port pour MongoDB
         options: >-
