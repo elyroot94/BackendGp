@@ -1,4 +1,4 @@
-package gp.aichagp.integration;
+package gp.aichagp.integration.services;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

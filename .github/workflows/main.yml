@@ -76,8 +76,8 @@ jobs:
             grep -v PASSWORD .env
             
             # Forcer le pull des images et recréer les conteneurs
-            docker compose pull --quiet
-            docker compose up -d --force-recreate
+            docker compose up --build
+            
             
             # Vérifier le statut
             docker compose ps

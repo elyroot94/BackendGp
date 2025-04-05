@@ -1,46 +1,194 @@
+"""
+Représente un utilisateur dans le système, qui peut être soit un client soit un GP (Grand Public).
+"""
+type User {
+    "Identifiant unique de l'utilisateur"
+    id: ID!
+    "Nom de l'utilisateur"
+    nom: String!
+    "Prénom de l'utilisateur"
+    prenom: String!
+    "Adresse email de l'utilisateur"
+    email: String!
+    "Numéro de téléphone de l'utilisateur"
+    telephone: String!
+    "Rôle de l'utilisateur (GP ou CLIENT)"
+    role: String!
+    "Indique si l'identité de l'utilisateur a été vérifiée"
+    verificationIdentite: Boolean!
+    "URL ou référence des documents d'identité"
+    documentsIdentite: String
+    "Adresse physique de l'utilisateur"
+    adresse: String
+    "Coordonnées géographiques [longitude, latitude]"
+    location: [Float!]
+    "Liste des trajets associés à l'utilisateur"
+    trajets: [Trajet!]
+    "Liste des colis acceptés par le GP"
+    listeColisAcceptes: [Coli!]
+}
+
+"""
+Représente un colis à livrer dans le système.
+"""
 type Coli {
+    "Identifiant unique du colis"
     id: ID!
+    "Numéro de suivi unique du colis"
     numeroSuivi: String!
+    "Poids du colis en kilogrammes"
     poids: Float!
+    "Description du contenu du colis"
     description: String
+    "Statut actuel du colis (ex: EN_ATTENTE, EN_COURS, LIVRE)"
     statut: String!
+    "Date de création du colis"
     dateCreation: DateTime!
+    "Date de livraison effective ou prévue"
     dateLivraison: DateTime
+    "Nom du destinataire"
+    destinataireNom: String!
+    "Téléphone du destinataire"
+    destinataireTelephone: String!
+    "Code QR pour le suivi du colis"
+    qrCode: String
+    "Code unique pour la vérification"
+    codeUnique: String!
+    "ID de l'expéditeur"
+    expediteurId: String!
+    "GP assigné pour la livraison"
+    gp: User
 }
 
+"""
+Représente un trajet proposé par un GP pour livrer des colis.
+"""
 type Trajet {
+    "Identifiant unique du trajet"
     id: ID!
+    "Point de départ du trajet"
     pointDepart: String!
+    "Point d'arrivée du trajet"
     pointArrivee: String!
+    "Date et heure de départ"
     dateDepart: DateTime!
+    "Date et heure d'arrivée estimée"
     dateArriveeEstimee: DateTime
+    "Capacité maximale en kilogrammes"
     capaciteMaxKilos: Float!
+    "Kilogrammes encore disponibles"
     kilosDisponibles: Float!
-    listeColis: [Coli]
+    "Liste des colis associés au trajet"
+    listeColis: [Coli!]
 }
 
-input CreateTrajetInput {
+"""
+Données d'entrée pour la création d'un utilisateur.
+"""
+input UserInput {
+    "Nom de l'utilisateur"
+    nom: String!
+    "Prénom de l'utilisateur"
+    prenom: String!
+    "Adresse email de l'utilisateur"
+    email: String!
+    "Numéro de téléphone"
+    telephone: String!
+    "Mot de passe"
+    password: String!
+    "Rôle (GP ou CLIENT)"
+    role: String!
+    "Adresse physique"
+    adresse: String!
+}
+
+"""
+Données d'entrée pour la création d'un trajet.
+"""
+input TrajetInput {
+    "Point de départ du trajet"
     pointDepart: String!
+    "Point d'arrivée du trajet"
     pointArrivee: String!
-    dateDepart: DateTime!
-    dateArriveeEstimee: DateTime
+    "Date et heure de départ (format: YYYY-MM-DDTHH:mm:ss)"
+    dateDepart: String!
+    "Capacité maximale en kilogrammes"
     capaciteMaxKilos: Float!
+    "Kilogrammes disponibles initialement"
     kilosDisponibles: Float!
 }
 
-input SearchTrajetInput {
-    pointDepart: String
-    pointArrivee: String
-    dateDepart: DateTime
-}
-
+"""
+Requêtes disponibles dans l'API.
+"""
 type Query {
-    trajets(searchInput: SearchTrajetInput): [Trajet!]!
+    "Récupère tous les trajets disponibles"
+    getAllTrajets: [Trajet!]!
+    
+    """
+    Recherche des trajets selon des critères spécifiques
+    """
+    searchTrajets(
+        "Ville de départ"
+        pointDepart: String, 
+        "Ville d'arrivée"
+        pointArrivee: String, 
+        "Date de départ (format: YYYY-MM-DDTHH:mm:ss)"
+        dateDepart: String
+    ): [Trajet!]!
+    
+    """
+    Recherche des trajets proches d'un point géographique
+    """
+    searchTrajetsProches(
+        "Ville de départ"
+        pointDepart: String!, 
+        "Ville d'arrivée"
+        pointArrivee: String!, 
+        "Date de départ (format: YYYY-MM-DDTHH:mm:ss)"
+        dateDepart: String!, 
+        "Rayon de recherche en kilomètres"
+        rayonKm: Float!
+    ): [Trajet!]!
+    
+    "Récupère un trajet par son ID"
     trajet(id: ID!): Trajet
+    
+    """
+    Recherche des GP proches d'une ville
+    """
+    searchGPProches(
+        "Ville de recherche"
+        ville: String!, 
+        "Rayon de recherche en kilomètres"
+        rayonKm: Float!
+    ): [User!]!
+    
+    """
+    Recherche des GP disponibles sur un trajet
+    """
+    searchGPParTrajet(
+        "Point de départ"
+        pointDepart: String!, 
+        "Point d'arrivée"
+        pointArrivee: String!, 
+        "Rayon de recherche en kilomètres"
+        rayonKm: Float!
+    ): [User!]!
+    
+    "Récupère un GP par son ID"
+    getGPById(id: ID!): User
 }
 
+"""
+Mutations disponibles dans l'API.
+"""
 type Mutation {
-    createTrajet(input: CreateTrajetInput!): Trajet!
+    "Enregistre un nouveau GP"
+    registerGP(input: UserInput!): User!
+    "Crée un nouveau trajet"
+    createTrajet(input: TrajetInput!): Trajet!
 }
 
+"Type personnalisé pour les dates et heures"
 scalar DateTime 
