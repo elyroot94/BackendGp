@@ -11,9 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongodb:
-        image: mongo:latest
+        image: mongo:7.0.2         # Spécifie la version MongoDB Docker
         ports:
-          - 27017:27017
+          - 27017:27017            # Définit le port pour MongoDB
+        options: >-
+          --name mongodb
+          --health-cmd="echo 'db.runCommand(\"ping\").ok' | mongo localhost:27017/test --quiet"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
 
     steps:
@@ -39,7 +45,7 @@ jobs:
       - name: Build and Run Tests
         env:
           SPRING_PROFILES_ACTIVE: test  # Assure que les tests utilisent le bon profil
-          MONGO_URI: mongodb://localhost:27017/testdb  # Configuration nécessaire pour MongoDB
+          MONGO_URI: mongodb://localhost:27017/test  # Configuration nécessaire pour MongoDB
         run: |
           mvn clean verify -U \
           -Dspring.profiles.active=test
