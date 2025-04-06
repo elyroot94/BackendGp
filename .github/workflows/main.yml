@@ -90,11 +90,7 @@ jobs:
           host: ${{ secrets.TEST_SERVER_HOST }}
           username: ${{ secrets.TEST_SERVER_USERNAME }}
           key: ${{ secrets.TEST_SERVER_SSH_KEY }}
-          source: |
-            docker-compose.yml
-            Dockerfile
-            pom.xml
-            src/
+          source: "."
           target: "/opt/gestion-colis/"
           strip_components: 0
 
