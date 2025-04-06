@@ -14,11 +14,15 @@ jobs:
         image: mongo:7.0.2
         ports:
           - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
         options: >-
-          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --health-start-period 40s
 
     steps:
       # Étape 1: Checkout du code
@@ -35,35 +39,20 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Étape 3: Vérification de l'état de MongoDB
-      - name: Wait for MongoDB
-        run: |
-          echo "Waiting for MongoDB to be ready..."
-          for i in {1..30}; do
-            if mongosh --eval "db.runCommand('ping').ok" >/dev/null 2>&1; then
-              echo "MongoDB is ready!"
-              exit 0
-            fi
-            echo "Waiting for MongoDB... Attempt $i"
-            sleep 2
-          done
-          echo "MongoDB failed to start"
-          exit 1
-
-      # Étape 4: Nettoyage et vérification des dépendances
+      # Étape 3: Nettoyage et vérification des dépendances
       - name: Clean and Verify Dependencies
         run: |
           mvn clean dependency:purge-local-repository
           mvn dependency:go-offline
           mvn dependency:resolve
 
-      # Étape 5: Build et Tests
+      # Étape 4: Build et Tests
       - name: Build and Run Tests
         env:
           SPRING_PROFILES_ACTIVE: test
-          MONGO_URI: mongodb://localhost:27017/test
+          MONGO_URI: mongodb://admin:password@localhost:27017/test
           MAVEN_OPTS: -Xmx2048m -XX:+TieredCompilation -XX:TieredStopAtLevel=1
-          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/test
+          SPRING_DATA_MONGODB_URI: mongodb://admin:password@localhost:27017/test
         run: |
           mvn clean verify -U \
           -Dspring.profiles.active=test \
@@ -76,10 +65,10 @@ jobs:
           -Dmaven.site.skip=true \
           -Dmaven.artifact.threads=4 \
           -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
-          -Dspring.data.mongodb.uri=mongodb://localhost:27017/test \
+          -Dspring.data.mongodb.uri=mongodb://admin:password@localhost:27017/test \
           -Dspring.data.mongodb.auto-index-creation=true
 
-      # Étape 6: Analyse SonarQube
+      # Étape 5: Analyse SonarQube
       - name: SonarQube Analysis
         if: success()
         env:
@@ -93,7 +82,7 @@ jobs:
           -Dsonar.analysis.mode=publish \
           -Dsonar.coverage.jacoco.xmlReportPaths=${project.build.directory}/site/jacoco/jacoco.xml
 
-      # Étape 7: Déploiement sur le VPS
+      # Étape 6: Déploiement sur le VPS
       - name: Copy docker-compose to VPS
         if: success()
         uses: appleboy/scp-action@master
@@ -117,15 +106,12 @@ jobs:
             mkdir -p /opt/gestion-colis
             cd /opt/gestion-colis
             
-            # Sauvegarder les logs existants
             if [ -f logs/app.log ]; then
               mv logs/app.log logs/app.log.$(date +%Y%m%d_%H%M%S)
             fi
             
-            # Nettoyer les conteneurs existants
             docker compose down || true
             
-            # Créer le fichier .env
             cat << EOF > .env
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             TAG=${{ github.sha }}
@@ -133,18 +119,13 @@ jobs:
             MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
             EOF
             
-            # Vérifier les variables (masquer les mots de passe sensibles)
             grep -v PASSWORD .env
             
-            # Forcer le pull des images et recréer les conteneurs
             docker compose pull
             docker compose up -d --build
             
-            # Attendre que les conteneurs soient en bonne santé
             timeout 300 bash -c 'while [[ "$(docker compose ps --format "{{.Status}}" | grep -c "healthy")" -lt 2 ]]; do sleep 5; done'
             
-            # Vérifier le statut des conteneurs
             docker compose ps
             
-            # Vérifier les logs
             docker compose logs --tail=50
