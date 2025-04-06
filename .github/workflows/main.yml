@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongodb:
-        image: mongo:latest         # Spécifie la version MongoDB Docker
+        image: mongo:7.0.2
         ports:
-          - 27017:27017            # Définit le port pour MongoDB
+          - 27017:27017
         options: >-
           --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
           --health-interval 10s
@@ -57,28 +57,14 @@ jobs:
           mvn dependency:go-offline
           mvn dependency:resolve
 
-      # Étape 5: Configuration de la base de données embarquée
-      - name: Setup Embedded MongoDB
-        run: |
-          # Créer le répertoire pour les données MongoDB
-          mkdir -p ~/data/db
-          # Vérifier que le port 27017 est disponible
-          lsof -i :27017 || true
-
-      # Étape 6: Build et Tests
+      # Étape 5: Build et Tests
       - name: Build and Run Tests
         env:
           SPRING_PROFILES_ACTIVE: test
           MONGO_URI: mongodb://localhost:27017/test
           MAVEN_OPTS: -Xmx2048m -XX:+TieredCompilation -XX:TieredStopAtLevel=1
           SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/test
-          SPRING_MONGODB_EMBEDDED_VERSION: 7.0.2
-          DE_FLAPDOODLE_MONGODB_EMBEDDED_VERSION: 7.0.2
         run: |
-          # Vérifier la version de MongoDB embarquée
-          mvn dependency:tree | grep -i mongodb
-          
-          # Exécuter les tests avec la base de données embarquée
           mvn clean verify -U \
           -Dspring.profiles.active=test \
           -DskipTests=false \
@@ -91,11 +77,9 @@ jobs:
           -Dmaven.artifact.threads=4 \
           -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
           -Dspring.data.mongodb.uri=mongodb://localhost:27017/test \
-          -Dspring.mongodb.embedded.version=7.0.2 \
-          -Dde.flapdoodle.mongodb.embedded.version=7.0.2 \
           -Dspring.data.mongodb.auto-index-creation=true
 
-      # Étape 7: Analyse SonarQube
+      # Étape 6: Analyse SonarQube
       - name: SonarQube Analysis
         if: success()
         env:
@@ -109,7 +93,7 @@ jobs:
           -Dsonar.analysis.mode=publish \
           -Dsonar.coverage.jacoco.xmlReportPaths=${project.build.directory}/site/jacoco/jacoco.xml
 
-      # Étape 8: Déploiement sur le VPS
+      # Étape 7: Déploiement sur le VPS
       - name: Copy docker-compose to VPS
         if: success()
         uses: appleboy/scp-action@master

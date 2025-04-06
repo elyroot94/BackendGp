@@ -8,34 +8,48 @@ import gp.aichagp.services.GPService;
 import gp.aichagp.services.TrajetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
-import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeospatialIndex;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureHttpGraphQlTester
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-@ContextConfiguration(classes = {AichagpApplication.class})
 @ActiveProfiles("test")
 public class TrajetResolverTest {
 
-    @Autowired
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0.2")
+            .withExposedPorts(27017);
+
+    @DynamicPropertySource
+    static void setProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", () -> 
+            String.format("mongodb://%s:%d/test", 
+                mongoDBContainer.getHost(), 
+                mongoDBContainer.getFirstMappedPort()));
+    }
+
+    @LocalServerPort
+    private int port;
+
+    private WebTestClient webTestClient;
     private HttpGraphQlTester graphQlTester;
 
     @MockBean
@@ -47,11 +61,39 @@ public class TrajetResolverTest {
     @MockBean
     private GPService gpService;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     private Trajet trajet;
     private static final String TEST_DATE = "2024-03-29T10:00:00";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws InterruptedException {
+        // Attendre que le conteneur soit prêt
+        if (!mongoDBContainer.isRunning()) {
+            mongoDBContainer.start();
+        }
+        
+        // Attendre 5 secondes pour que le conteneur soit complètement initialisé
+        Thread.sleep(5000);
+        
+        // Nettoyer la base de données avant chaque test
+        mongoTemplate.getDb().drop();
+        mongoTemplate.createCollection(Trajet.class);
+
+        // Créer l'index géospatial
+        mongoTemplate.indexOps(Trajet.class).ensureIndex(new GeospatialIndex("location").typed(GeoSpatialIndexType.GEO_2DSPHERE));
+
+        // Initialiser le WebTestClient avec la configuration CORS
+        this.webTestClient = WebTestClient.bindToServer()
+            .baseUrl("http://localhost:" + port + "/graphql")
+            .defaultHeader("Origin", "http://localhost:" + port)
+            .defaultHeader("Access-Control-Request-Method", "POST")
+            .build();
+        
+        // Configurer le HttpGraphQlTester avec le WebTestClient
+        this.graphQlTester = HttpGraphQlTester.create(webTestClient);
+
         trajet = new Trajet();
         trajet.setId("1");
         trajet.setPointDepart("Paris");

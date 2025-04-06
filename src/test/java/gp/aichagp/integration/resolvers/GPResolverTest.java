@@ -10,10 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Arrays;
@@ -28,6 +33,15 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 public class GPResolverTest {
 
+    @Container
+    private static final MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0.2")
+            .withExposedPorts(27017);
+
+    @DynamicPropertySource
+    static void setProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+    }
+
     @LocalServerPort
     private int port;
 
@@ -40,10 +54,18 @@ public class GPResolverTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     @BeforeEach
     void setUp() {
+        // Attendre que le conteneur soit prêt
+        if (!mongoDBContainer.isRunning()) {
+            mongoDBContainer.start();
+        }
+        
         // Nettoyer la base de données avant chaque test
-        userRepository.deleteAll();
+        mongoTemplate.getDb().drop();
         
         // Initialiser le WebTestClient avec la configuration CORS
         this.webTestClient = WebTestClient.bindToServer()
