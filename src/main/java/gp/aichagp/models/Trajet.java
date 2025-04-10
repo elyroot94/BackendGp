@@ -19,39 +19,22 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Trajet {
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     @Id
     private String id;
     private String pointDepart;
     private String pointArrivee;
-    private String dateDepart;
-    private String dateArriveeEstimee;
+    private LocalDateTime dateDepart;
+    private LocalDateTime dateArriveeEstimee;
     private List<Coli> listeColis; // Stocker les colis en tant que sous-documents
     private Double capaciteMaxKilos; // Utilisé uniquement si role = "GP"
     private Double kilosDisponibles;
-    private User gp; // Référence au GP qui propose ce trajet
+    private String gpId; // Référence au GP qui propose ce trajet
 
-    public LocalDateTime getDateDepartAsDateTime() {
-        if (dateDepart == null) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(dateDepart, DATE_FORMATTER);
-        } catch (DateTimeParseException e) {
-            throw new DateFormatException("Le format de la date doit être YYYY-MM-DDTHH:mm:ss (exemple: 2024-03-29T10:00:00)");
-        }
-    }
-
-    public LocalDateTime getDateArriveeEstimeeAsDateTime() {
-        if (dateArriveeEstimee == null) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(dateArriveeEstimee, DATE_FORMATTER);
-        } catch (DateTimeParseException e) {
-            throw new DateFormatException("Le format de la date doit être YYYY-MM-DDTHH:mm:ss (exemple: 2024-03-29T10:00:00)");
-        }
+    public String getDateDepart() {
+        return dateDepart != null ?
+                dateDepart.format(DateTimeFormatter.ISO_DATE_TIME) :
+                null;
     }
 }
 

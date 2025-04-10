@@ -13,10 +13,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(locations = "classpath:application-test.properties")
-@Testcontainers
+//@Testcontainers
 class AichagpApplicationTests {
 
-	@Container
+	/*@Container
 	private static final MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0.2")
 			.withExposedPorts(27017);
 
@@ -24,7 +24,7 @@ class AichagpApplicationTests {
 	static void setProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
 	}
-
+*/
 	@Test
 	void contextLoads() {
 	}

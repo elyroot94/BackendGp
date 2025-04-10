@@ -5,5 +5,6 @@ public record TrajetInput(
     String pointArrivee,
     String dateDepart,
     double capaciteMaxKilos,
-    double kilosDisponibles
+    double kilosDisponibles,
+    String  gpId
 ) {} 

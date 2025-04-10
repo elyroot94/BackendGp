@@ -4,9 +4,13 @@ import gp.aichagp.exceptions.DateFormatException;
 import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
 import gp.aichagp.models.TrajetInput;
+
+import gp.aichagp.repositories.UserRepository;
 import gp.aichagp.services.TrajetService;
 import gp.aichagp.services.GPService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
+
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
@@ -21,6 +25,9 @@ public class TrajetResolver {
 
     private final TrajetService trajetService;
     private final GPService gpService;
+
+     @Autowired
+    private UserRepository userRepository;
 
     public TrajetResolver(TrajetService trajetService, GPService gpService) {
         this.trajetService = trajetService;
@@ -56,20 +63,48 @@ public class TrajetResolver {
         return trajetService.getTrajetById(id);
     }
 
+    /**
+     * Crée un nouveau trajet.
+     *
+     * @param input Les données du trajet
+     * @return Le trajet créé et sauvegardé
+     * @throws TrajetValidationException Si les données du trajet sont invalides
+     * @throws DateFormatException Si le format de la date est incorrect
+     */
     @MutationMapping
     public Trajet createTrajet(@Argument("input") TrajetInput input) {
+
+        // Vérification que les données du trajet sont présentes
         if (input == null) {
             throw new TrajetValidationException("Les données du trajet sont obligatoires");
         }
 
-        validateDateFormat(input.dateDepart());
+        // Conversion de la date
+        LocalDateTime dateDepart;
+        try {
+            dateDepart = LocalDateTime.parse(
+                    input.dateDepart(),
+                    DateTimeFormatter.ISO_DATE_TIME
+            );
+        } catch (DateTimeParseException e) {
+            throw new DateFormatException(
+                    "Format de date invalide. Utilisez le format ISO-8601 (ex: 2025-12-31T10:00:00)"
+            );
+        }
 
+        // Validation date future
+        if (dateDepart.isBefore(LocalDateTime.now())) {
+            throw new TrajetValidationException("La date de départ ne peut pas être dans le passé");
+        }
+
+        // Création du trajet
         Trajet trajet = new Trajet();
         trajet.setPointDepart(input.pointDepart());
         trajet.setPointArrivee(input.pointArrivee());
+        trajet.setDateDepart(dateDepart); // LocalDateTime directement
         trajet.setCapaciteMaxKilos(input.capaciteMaxKilos());
         trajet.setKilosDisponibles(input.kilosDisponibles());
-        trajet.setDateDepart(input.dateDepart());
+        trajet.setGpId(input.gpId());
 
         return trajetService.createTrajet(trajet);
     }

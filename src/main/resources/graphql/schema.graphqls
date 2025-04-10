@@ -115,7 +115,9 @@ input TrajetInput {
     "Capacité maximale en kilogrammes"
     capaciteMaxKilos: Float!
     "Kilogrammes disponibles initialement"
-    kilosDisponibles: Float!
+    kilosDisponibles: Float!,
+    gpId: ID!,
+
 }
 
 """

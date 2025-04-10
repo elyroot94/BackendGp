@@ -1,10 +1,9 @@
 package gp.aichagp.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
@@ -15,8 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Document(collection = "utilisateurs")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -30,7 +28,7 @@ public class User {
     private String role; // "GP" ou "Expéditeur"
     private Boolean verificationIdentite = false;
     private String documentsIdentite;
-    @Field
+    @DBRef
     private List<Trajet> trajets = new ArrayList<>();
     private List<Coli> listeColisAcceptes = new ArrayList<>();
     
@@ -38,7 +36,7 @@ public class User {
     private double[] location; // [longitude, latitude]
     private String adresse;
 
-    @Override
+/*    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -52,5 +50,5 @@ public class User {
     @Override
     public int hashCode() {
         return Objects.hash(email, nom, prenom, role);
-    }
+    }*/
 }

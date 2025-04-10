@@ -3,7 +3,9 @@ package gp.aichagp.services;
 import gp.aichagp.exceptions.DateFormatException;
 import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
+import gp.aichagp.models.User;
 import gp.aichagp.repositories.TrajetRepository;
+import gp.aichagp.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,7 +24,7 @@ public class TrajetService {
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final TrajetRepository trajetRepository;
-
+    private final UserRepository userRepository;
     // Messages d'erreur
     private static final String ERROR_TRAJET_NULL = "Le trajet ne peut pas être null";
     private static final String ERROR_POINT_DEPART_OBLIGATOIRE = "Le point de départ est obligatoire";
@@ -34,9 +36,11 @@ public class TrajetService {
     private static final String ERROR_KILOS_DISPONIBLES_INVALIDE = "Les kilos disponibles doivent être supérieurs à 0";
     private static final String ERROR_KILOS_DEPASSENT_CAPACITE = "Les kilos disponibles ne peuvent pas dépasser la capacité maximale";
 
-    public TrajetService(TrajetRepository trajetRepository) {
+    public TrajetService(TrajetRepository trajetRepository, UserRepository userRepository) {
         this.trajetRepository = trajetRepository;
+        this.userRepository = userRepository;
     }
+
 
     /**
      * Crée un nouveau trajet après validation.
@@ -47,7 +51,16 @@ public class TrajetService {
      * @throws DateFormatException Si le format de la date est incorrect
      */
     public Trajet createTrajet(Trajet trajet) {
-        validateTrajet(trajet);
+        // Validation du trajet null en premier
+        validateTrajetNotNull(trajet);
+        
+        // Validation GP existe
+        if (!userRepository.existsById(trajet.getGpId())) {
+            throw new TrajetValidationException("GP non trouvé: " + trajet.getGpId());
+        }
+
+        validatePoints(trajet);
+        validateKilos(trajet);
         return trajetRepository.save(trajet);
     }
 
@@ -70,7 +83,7 @@ public class TrajetService {
      */
     public List<Trajet> searchTrajets(String pointDepart, String pointArrivee, String dateDepart) {
         return trajetRepository.findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(
-            pointDepart, pointArrivee, dateDepart);
+            pointDepart, pointArrivee, LocalDateTime.parse(dateDepart));
     }
 
     /**
@@ -95,7 +108,6 @@ public class TrajetService {
     private void validateTrajet(Trajet trajet) {
         validateTrajetNotNull(trajet);
         validatePoints(trajet);
-        validateDate(trajet);
         validateKilos(trajet);
     }
 
@@ -115,7 +127,7 @@ public class TrajetService {
         }
     }
 
-    private void validateDate(Trajet trajet) {
+  /*  private void validateDate(Trajet trajet) {
         // Vérification si la date est null
         if (trajet.getDateDepart() == null) {
             throw new TrajetValidationException(ERROR_DATE_DEPART_OBLIGATOIRE);
@@ -125,6 +137,11 @@ public class TrajetService {
         LocalDateTime dateDepart;
         try {
             dateDepart = LocalDateTime.parse(trajet.getDateDepart(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+            //trajet.setDateDepart(dateDepart.toString()); // Réassigne la date formatée
+            if (dateDepart == null) {
+                throw new DateFormatException(ERROR_DATE_FORMAT);
+            }
         } catch (DateTimeParseException e) {
             throw new DateFormatException(ERROR_DATE_FORMAT);
         }
@@ -133,7 +150,7 @@ public class TrajetService {
         if (dateDepart.isBefore(LocalDateTime.now())) {
             throw new TrajetValidationException(ERROR_DATE_PASSEE);
         }
-    }
+    }*/
 
     private void validateKilos(Trajet trajet) {
         if (trajet.getCapaciteMaxKilos() == null || trajet.getCapaciteMaxKilos() <= 0) {

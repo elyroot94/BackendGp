@@ -82,7 +82,28 @@ jobs:
           -Dsonar.analysis.mode=publish \
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
-      # Étape 6: Déploiement sur le VPS
+      # Étape 6: Arrêt des services sur le VPS
+      - name: Stop Services on VPS
+        if: success()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/gestion-colis
+            
+            echo "Stopping all running services..."
+            docker compose stop || true
+            docker compose down || true
+            
+            echo "Cleaning up Docker system..."
+            docker system prune -f
+            
+            echo "Services stopped successfully"
+
+      # Étape 7: Déploiement sur le VPS
       - name: Copy deployment files to VPS
         if: success()
         uses: appleboy/scp-action@master
@@ -110,8 +131,6 @@ jobs:
               mv logs/app.log logs/app.log.$(date +%Y%m%d_%H%M%S)
             fi
             
-            docker compose down || true
-            
             cat << EOF > .env
             DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             TAG=${{ github.sha }}
@@ -121,11 +140,17 @@ jobs:
             
             grep -v PASSWORD .env
             
+            echo "Pulling latest images..."
             docker compose pull
+            
+            echo "Starting services..."
             docker compose up -d --build
             
+            echo "Waiting for services to be healthy..."
             timeout 300 bash -c 'while [[ "$(docker compose ps --format "{{.Status}}" | grep -c "healthy")" -lt 2 ]]; do sleep 5; done'
             
+            echo "Checking service status..."
             docker compose ps
             
+            echo "Checking recent logs..."
             docker compose logs --tail=50
