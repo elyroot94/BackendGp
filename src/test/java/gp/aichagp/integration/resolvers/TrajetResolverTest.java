@@ -27,8 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @AutoConfigureHttpGraphQlTester
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Testcontainers
 @ContextConfiguration(classes = {TestIntroGraphqlApplication.class})
 @ActiveProfiles("test")
 @Slf4j

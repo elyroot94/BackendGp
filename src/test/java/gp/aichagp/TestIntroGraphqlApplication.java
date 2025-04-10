@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+
 @TestConfiguration(proxyBeanMethods = true)
 public class TestIntroGraphqlApplication {
     @Bean
