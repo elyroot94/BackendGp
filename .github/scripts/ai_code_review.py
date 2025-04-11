@@ -1,10 +1,3 @@
-from openai import OpenAI
-import requests
-import json
-import os
-from pathlib import Path
-import time
-
 # Configuration
 MAX_RETRIES = 3
 DELAY_BETWEEN_REQUESTS = 2
@@ -14,6 +7,12 @@ SYSTEM_PROMPT = """Tu es un expert Java/Spring. Analyse ce problème SonarQube e
 1. Une solution implémentable
 2. Une explication technique
 3. Une alternative si pertinente"""
+
+def save_suggestions(suggestions):
+    output_path = Path(__file__).parent.parent / "ai_suggestions.json"
+    with open(output_path, 'w') as f:
+        json.dump(suggestions, f, indent=2)
+    print(f"Suggestions saved to {output_path.absolute()}")
 
 def analyze_with_openai(client, prompt):
     for _ in range(MAX_RETRIES):
