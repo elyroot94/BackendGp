@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import json
 import os
 from pathlib import Path
@@ -47,29 +47,33 @@ def generate_prompt(issue):
     """
 
 def main():
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     with open("sonarqube_issues.json") as f:
         issues = json.load(f)
 
     suggestions = []
     for issue in issues[:10]:  # Limite pour contrôle des coûts
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": generate_prompt(issue)}
-            ],
-            temperature=0.3
-        )
-        suggestions.append({
-            **issue,
-            "ai_suggestion": response.choices[0].message.content
-        })
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": generate_prompt(issue)}
+                ],
+                temperature=0.3
+            )
 
-    with open("ai_suggestions.json", "w") as f:
-        json.dump(suggestions, f)
+            suggestions.append({
+                **issue,
+                "ai_suggestion": response.choices[0].message.content
+            })
+
+        except Exception as e:
+            print(f"Erreur lors du traitement de l'issue {issue['rule']}: {str(e)}")
+            continue
+
+    save_suggestions(suggestions)
 
 if __name__ == "__main__":
     main()
-    save_suggestions(suggestions)
