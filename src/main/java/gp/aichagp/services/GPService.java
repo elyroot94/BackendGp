@@ -7,9 +7,6 @@ import gp.aichagp.repositories.UserRepository;
 import gp.aichagp.repositories.TrajetRepository;
 import gp.aichagp.exceptions.UserRegistrationException;
 import org.springframework.stereotype.Service;
-import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.Metrics;
-import org.springframework.data.geo.Point;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -20,7 +17,7 @@ import java.util.stream.Collectors;
 @Service
 public class GPService {
     
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
     
     private final UserRepository userRepository;
     private final TrajetRepository trajetRepository;
@@ -97,7 +94,7 @@ public class GPService {
         // 4. Récupérer leurs IDs
         List<String> gpIds = gpsProches.stream()
                 .map(User::getId)
-                .collect(Collectors.toList());
+                .toList();
 
         // 5. Trouver les trajets correspondants (nouvelle query)
         List<Trajet> trajetsCorrespondants = trajetRepository.findTrajetsForGPs(
@@ -111,7 +108,7 @@ public class GPService {
 
         return gpsProches.stream()
                 .filter(gp -> gpIdsAvecTrajets.contains(gp.getId()))
-                .collect(Collectors.toList());
+                .toList();
     }
     
     public User getGPById(String id) {
@@ -167,6 +164,6 @@ public class GPService {
         return gpsProches.stream()
             .flatMap(gp -> trajetRepository.findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(
                 pointDepart, pointArrivee, dateDepartConvertie).stream())
-            .collect(Collectors.toList());
+            .toList();
     }
 } 

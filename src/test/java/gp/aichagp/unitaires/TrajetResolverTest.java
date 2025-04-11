@@ -3,7 +3,7 @@ package gp.aichagp.unitaires;
 import gp.aichagp.exceptions.DateFormatException;
 import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
-import gp.aichagp.models.TrajetInput;
+import gp.aichagp.dto.TrajetInput;
 import gp.aichagp.repositories.UserRepository;
 import gp.aichagp.resolvers.TrajetResolver;
 import gp.aichagp.services.TrajetService;
@@ -21,7 +21,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,7 +65,7 @@ public class TrajetResolverTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Paris", result.get(0).getPointDepart());
+        assertEquals("Paris", result.getFirst().getPointDepart());
         verify(trajetService).getAllTrajets();
     }
 
@@ -77,7 +76,7 @@ public class TrajetResolverTest {
         String pointArrivee = "Lyon";
         String dateDepart = TEST_DATE;
 
-        when(trajetService.searchTrajets(eq(pointDepart), eq(pointArrivee), eq(dateDepart)))
+        when(trajetService.searchTrajets(pointDepart,pointArrivee,dateDepart))
             .thenReturn(List.of(trajet));
 
         // When
@@ -86,7 +85,7 @@ public class TrajetResolverTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Paris", result.get(0).getPointDepart());
+        assertEquals("Paris", result.getFirst().getPointDepart());
         verify(trajetService).searchTrajets(pointDepart, pointArrivee, dateDepart);
     }
 
@@ -112,7 +111,7 @@ public class TrajetResolverTest {
         String dateDepart = TEST_DATE;
         double rayonKm = 10.0;
 
-        when(gpService.findTrajetsProches(eq(pointDepart), eq(pointArrivee), eq(dateDepart), eq(rayonKm)))
+        when(gpService.findTrajetsProches(pointDepart, pointArrivee, dateDepart,rayonKm))
             .thenReturn(List.of(trajet));
 
         // When
@@ -121,7 +120,7 @@ public class TrajetResolverTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Paris", result.get(0).getPointDepart());
+        assertEquals("Paris", result.getFirst().getPointDepart());
         verify(gpService).findTrajetsProches(pointDepart, pointArrivee, dateDepart, rayonKm);
     }
 

@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class GPServiceTest {
+class GPServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -39,7 +39,6 @@ public class GPServiceTest {
     private GPService gpService;
 
     private User gp;
-    private Trajet trajet;
 
     @BeforeEach
     void setUp() {
@@ -54,7 +53,7 @@ public class GPServiceTest {
         gp.setAdresse("Paris");
         gp.setLocation(new double[]{2.3522, 48.8566});
 
-        trajet = new Trajet();
+        Trajet trajet = new Trajet();
         trajet.setId("1");
         trajet.setPointDepart("Paris");
         trajet.setPointArrivee("Lyon");
@@ -118,8 +117,8 @@ public class GPServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("John", result.get(0).getNom());
-        assertEquals("GP", result.get(0).getRole());
+        assertEquals("John", result.getFirst().getNom());
+        assertEquals("GP", result.getFirst().getRole());
         verify(userRepository, times(1)).findNearbyGP("GP", coordinates, rayonKm * 1000);
         verify(geocodingService, times(1)).geocodeAddress(ville);
     }
@@ -133,10 +132,10 @@ public class GPServiceTest {
         double[] coordinates = {2.3522, 48.8566}; // Coordonnées de Paris
 
         // Création des objets de test
-        User gp = new User();
-        gp.setId("gp1");
-        gp.setNom("John");
-        gp.setRole("GP");
+        User gptestForFindGPParTrajet = new User();
+        gptestForFindGPParTrajet.setId("gp1");
+        gptestForFindGPParTrajet.setNom("John");
+        gptestForFindGPParTrajet.setRole("GP");
 
         Trajet trajet = new Trajet();
         trajet.setGpId("gp1");
@@ -146,7 +145,7 @@ public class GPServiceTest {
         // Mock des dépendances
         when(geocodingService.geocodeAddress(pointDepart)).thenReturn(coordinates);
         when(userRepository.findNearbyGP("GP", coordinates, rayonKm * 1000))
-                .thenReturn(List.of(gp));
+                .thenReturn(List.of(gptestForFindGPParTrajet));
         when(trajetRepository.findTrajetsForGPs(List.of("gp1"), pointDepart, pointArrivee))
                 .thenReturn(List.of(trajet));
 
@@ -156,8 +155,8 @@ public class GPServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("John", result.get(0).getNom());
-        assertEquals("GP", result.get(0).getRole());
+        assertEquals("John", result.getFirst().getNom());
+        assertEquals("GP", result.getFirst().getRole());
 
         // Vérifications des mocks
         verify(userRepository, times(1)).findNearbyGP("GP", coordinates, rayonKm * 1000);
@@ -186,12 +185,12 @@ public class GPServiceTest {
         double rayonKm = 10.0;
         double[] coordinates = {2.3522, 48.8566};
 
-        User gp = new User();
-        gp.setId("gp1");
+        User gptesttrajet = new User();
+        gptesttrajet.setId("gp1");
 
         when(geocodingService.geocodeAddress(pointDepart)).thenReturn(coordinates);
         when(userRepository.findNearbyGP("GP", coordinates, rayonKm * 1000))
-                .thenReturn(List.of(gp));
+                .thenReturn(List.of(gptesttrajet));
         when(trajetRepository.findTrajetsForGPs(List.of("gp1"), pointDepart, pointArrivee))
                 .thenReturn(Collections.emptyList());
 

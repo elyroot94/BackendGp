@@ -1,5 +1,6 @@
 package gp.aichagp.unitaires;
 
+import gp.aichagp.exceptions.DateFormatException;
 import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
 import gp.aichagp.repositories.TrajetRepository;
@@ -22,7 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TrajetServiceTest {
+class TrajetServiceTest {
 
     @Mock
     private TrajetRepository trajetRepository;
@@ -90,7 +91,6 @@ public class TrajetServiceTest {
     void testCreateTrajet_EmptyPointDepart() {
         // Given
         trajet.setPointDepart("");
-        when(userRepository.existsById(GP_ID)).thenReturn(true);
 
         // When & Then
         assertThrows(TrajetValidationException.class, () -> {
@@ -103,7 +103,6 @@ public class TrajetServiceTest {
     void testCreateTrajet_EmptyPointArrivee() {
         // Given
         trajet.setPointArrivee("");
-        when(userRepository.existsById(GP_ID)).thenReturn(true);
 
         // When & Then
         assertThrows(TrajetValidationException.class, () -> {
@@ -116,7 +115,6 @@ public class TrajetServiceTest {
     void testCreateTrajet_NegativeCapaciteMax() {
         // Given
         trajet.setCapaciteMaxKilos(-10.0);
-        when(userRepository.existsById(GP_ID)).thenReturn(true);
 
         // When & Then
         assertThrows(TrajetValidationException.class, () -> {
@@ -129,7 +127,6 @@ public class TrajetServiceTest {
     void testCreateTrajet_NegativeKilosDisponibles() {
         // Given
         trajet.setKilosDisponibles(-5.0);
-        when(userRepository.existsById(GP_ID)).thenReturn(true);
 
         // When & Then
         assertThrows(TrajetValidationException.class, () -> {
@@ -142,7 +139,54 @@ public class TrajetServiceTest {
     void testCreateTrajetWithInvalidKilos() {
         // Given
         trajet.setKilosDisponibles(150.0);
-        when(userRepository.existsById(GP_ID)).thenReturn(true);
+
+        // When & Then
+        assertThrows(TrajetValidationException.class, () -> {
+            trajetService.createTrajet(trajet);
+        });
+        verify(trajetRepository, never()).save(any(Trajet.class));
+    }
+
+    @Test
+    void testCreateTrajet_NullPointDepart() {
+        // Given
+        trajet.setPointDepart(null);
+
+        // When & Then
+        assertThrows(TrajetValidationException.class, () -> {
+            trajetService.createTrajet(trajet);
+        });
+        verify(trajetRepository, never()).save(any(Trajet.class));
+    }
+
+    @Test
+    void testCreateTrajet_NullPointArrivee() {
+        // Given
+        trajet.setPointArrivee(null);
+
+        // When & Then
+        assertThrows(TrajetValidationException.class, () -> {
+            trajetService.createTrajet(trajet);
+        });
+        verify(trajetRepository, never()).save(any(Trajet.class));
+    }
+
+    @Test
+    void testCreateTrajet_NullCapaciteMax() {
+        // Given
+        trajet.setCapaciteMaxKilos(null);
+
+        // When & Then
+        assertThrows(TrajetValidationException.class, () -> {
+            trajetService.createTrajet(trajet);
+        });
+        verify(trajetRepository, never()).save(any(Trajet.class));
+    }
+
+    @Test
+    void testCreateTrajet_NullKilosDisponibles() {
+        // Given
+        trajet.setKilosDisponibles(null);
 
         // When & Then
         assertThrows(TrajetValidationException.class, () -> {
@@ -162,7 +206,7 @@ public class TrajetServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Paris", result.get(0).getPointDepart());
+        assertEquals("Paris", result.getFirst().getPointDepart());
         verify(trajetRepository).findAll();
     }
 
@@ -171,19 +215,18 @@ public class TrajetServiceTest {
         // Given
         String pointDepart = "Paris";
         String pointArrivee = "Lyon";
-        String dateDepart = TEST_DATE;
 
         when(trajetRepository.findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(
             eq(pointDepart), eq(pointArrivee), any(LocalDateTime.class)))
             .thenReturn(List.of(trajet));
 
         // When
-        List<Trajet> result = trajetService.searchTrajets(pointDepart, pointArrivee, dateDepart);
+        List<Trajet> result = trajetService.searchTrajets(pointDepart, pointArrivee, TEST_DATE);
 
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Paris", result.get(0).getPointDepart());
+        assertEquals("Paris", result.getFirst().getPointDepart());
         verify(trajetRepository).findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(
             eq(pointDepart), eq(pointArrivee), any(LocalDateTime.class));
     }
@@ -214,5 +257,71 @@ public class TrajetServiceTest {
             trajetService.getTrajetById(id);
         });
         verify(trajetRepository).findById(id);
+    }
+
+    @Test
+    void testGetTrajetById_NotFound() {
+        // Given
+        String id = "nonexistent";
+        when(trajetRepository.findById(id)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.getTrajetById(id);
+        }, "Trajet non trouvé avec l'ID: " + id);
+    }
+
+    @Test
+    void testSearchTrajets_InvalidDateFormat() {
+        // Given
+        String invalidDate = "invalid-date";
+
+        // When & Then
+        DateFormatException exception = assertThrows(DateFormatException.class, () -> {
+            trajetService.searchTrajets("Paris", "Lyon", invalidDate);
+        });
+        
+        assertEquals("Format de date invalide. Utilisez le format ISO-8601 (ex: 2025-12-31T10:00:00)", 
+                    exception.getMessage());
+        
+        verify(trajetRepository, never())
+            .findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(any(), any(), any());
+    }
+
+    @Test
+    void testSearchTrajets_NullParams() {
+        // Test null pointDepart
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.searchTrajets(null, "Lyon", TEST_DATE);
+        });
+
+        // Test null pointArrivee
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.searchTrajets("Paris", null, TEST_DATE);
+        });
+
+        // Test null dateDepart
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.searchTrajets("Paris", "Lyon", null);
+        });
+
+        verify(trajetRepository, never())
+            .findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(any(), any(), any());
+    }
+
+    @Test
+    void testSearchTrajets_EmptyParams() {
+        // Test empty pointDepart
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.searchTrajets("", "Lyon", TEST_DATE);
+        });
+
+        // Test empty pointArrivee
+        assertThrows(IllegalArgumentException.class, () -> {
+            trajetService.searchTrajets("Paris", "", TEST_DATE);
+        });
+
+        verify(trajetRepository, never())
+            .findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(any(), any(), any());
     }
 }

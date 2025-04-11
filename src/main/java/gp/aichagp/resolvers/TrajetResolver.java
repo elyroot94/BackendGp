@@ -3,7 +3,7 @@ package gp.aichagp.resolvers;
 import gp.aichagp.exceptions.DateFormatException;
 import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
-import gp.aichagp.models.TrajetInput;
+import gp.aichagp.dto.TrajetInput;
 
 import gp.aichagp.repositories.UserRepository;
 import gp.aichagp.services.TrajetService;

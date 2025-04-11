@@ -2,6 +2,9 @@ package gp.aichagp.unitaires;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import gp.aichagp.exceptions.GeocodingException;
 import gp.aichagp.services.GeocodingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,100 +13,280 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class GeocodingServiceTest {
+class GeocodingServiceTest {
+
+    private GeocodingService geocodingService;
 
     @Mock
     private RestTemplate restTemplate;
 
-    private GeocodingService geocodingService;
-
-    private final String testAddress = "Tour Eiffel, Paris";
-    private final double[] expectedCoordinates = {2.2945, 48.8584};
+    private ObjectMapper objectMapper;
+    private static final String TEST_URL = "https://nominatim.openstreetmap.org";
+    private static final String TEST_ADDRESS = "Paris, France";
 
     @BeforeEach
     void setUp() {
-        geocodingService = new GeocodingService("https://nominatim.openstreetmap.org");
+        geocodingService = new GeocodingService(TEST_URL);
         geocodingService.setRestTemplate(restTemplate);
+        objectMapper = new ObjectMapper();
     }
 
     @Test
-    void testGeocodeAddressSuccess() throws Exception {
+    void testGeocodeAddress_Success() {
         // Given
-        String jsonResponse = "[{\"lat\":\"48.8584\",\"lon\":\"2.2945\"}]";
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode responseNode = mapper.readTree(jsonResponse);
-        
-        ResponseEntity<JsonNode> responseEntity = mock(ResponseEntity.class);
-        when(responseEntity.getBody()).thenReturn(responseNode);
-        
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        ObjectNode locationNode = objectMapper.createObjectNode()
+                .put("lat", "48.8566")
+                .put("lon", "2.3522");
+        responseBody.add(locationNode);
+
         when(restTemplate.exchange(
-            anyString(),
+            any(String.class),
             eq(HttpMethod.GET),
             any(HttpEntity.class),
             eq(JsonNode.class)
-        )).thenReturn(responseEntity);
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
 
         // When
-        double[] coordinates = geocodingService.geocodeAddress(testAddress);
+        double[] coordinates = geocodingService.geocodeAddress(TEST_ADDRESS);
 
         // Then
-        assertNotNull(coordinates);
-        assertEquals(2, coordinates.length);
-        assertEquals(expectedCoordinates[0], coordinates[0], 0.0001);
-        assertEquals(expectedCoordinates[1], coordinates[1], 0.0001);
-    }
-
-    @Test
-    void testGeocodeAddressEmptyResponse() {
-        // Given
-        ResponseEntity<JsonNode> responseEntity = mock(ResponseEntity.class);
-        when(responseEntity.getBody()).thenReturn(null);
-        
-        when(restTemplate.exchange(
-            anyString(),
+        assertEquals(2.3522, coordinates[0], 0.0001); // longitude
+        assertEquals(48.8566, coordinates[1], 0.0001); // latitude
+        verify(restTemplate).exchange(
+            contains(TEST_ADDRESS),
             eq(HttpMethod.GET),
             any(HttpEntity.class),
             eq(JsonNode.class)
-        )).thenReturn(responseEntity);
-
-        // When & Then
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            geocodingService.geocodeAddress(testAddress);
-        });
-        
-        assertTrue(exception.getMessage().contains("Impossible de géocoder l'adresse"));
+        );
     }
 
     @Test
-    void testGeocodeAddressInvalidResponse() throws Exception {
+    void testGeocodeAddress_NullAddress() {
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(null);
+        });
+        assertEquals("L'adresse ne peut pas être null ou vide", exception.getMessage());
+        verify(restTemplate, never()).exchange(
+            any(String.class),
+            any(HttpMethod.class),
+            any(HttpEntity.class),
+            any(Class.class)
+        );
+    }
+
+    @Test
+    void testGeocodeAddress_EmptyAddress() {
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress("  ");
+        });
+        assertEquals("L'adresse ne peut pas être null ou vide", exception.getMessage());
+        verify(restTemplate, never()).exchange(
+            any(String.class),
+            any(HttpMethod.class),
+            any(HttpEntity.class),
+            any(Class.class)
+        );
+    }
+
+    @Test
+    void testGeocodeAddress_ApiError() {
         // Given
-        String jsonResponse = "[]";
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode responseNode = mapper.readTree(jsonResponse);
-        
-        ResponseEntity<JsonNode> responseEntity = mock(ResponseEntity.class);
-        when(responseEntity.getBody()).thenReturn(responseNode);
-        
         when(restTemplate.exchange(
-            anyString(),
+            any(String.class),
             eq(HttpMethod.GET),
             any(HttpEntity.class),
             eq(JsonNode.class)
-        )).thenReturn(responseEntity);
+        )).thenThrow(new RestClientException("API Error"));
 
         // When & Then
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            geocodingService.geocodeAddress(testAddress);
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
         });
-        
-        assertTrue(exception.getMessage().contains("Impossible de géocoder l'adresse"));
+        assertEquals("Erreur lors de l'appel au service de géocodage", exception.getMessage());
     }
-} 
+
+    @Test
+    void testGeocodeAddress_NullResponse() {
+        // Given
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(null, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Réponse vide du service de géocodage pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_NotAnArray() {
+        // Given
+        ObjectNode nonArrayResponse = objectMapper.createObjectNode()
+                .put("error", "not an array");
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(nonArrayResponse, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Format de réponse invalide pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_EmptyResults() {
+        // Given
+        ArrayNode emptyResponse = objectMapper.createArrayNode();
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(emptyResponse, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Aucun résultat trouvé pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_NullLocation() {
+        // Given
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        responseBody.addNull(); // Ajoute un élément JSON null
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Résultat invalide pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_LocationWithNullValues() {
+        // Given
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        ObjectNode locationNode = objectMapper.createObjectNode()
+                .put("lat", "null")  // Notez que c'est une chaîne "null" et non un null réel
+                .put("lon", "null"); // Idem
+        responseBody.add(locationNode);
+
+        when(restTemplate.exchange(
+                any(String.class),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Format invalide des coordonnées pour l'adresse : " + TEST_ADDRESS,
+                exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_MissingCoordinates() {
+        // Given
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        ObjectNode locationNode = objectMapper.createObjectNode(); // Sans lat/lon
+        responseBody.add(locationNode);
+
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Coordonnées manquantes dans la réponse pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_InvalidCoordinateFormat() {
+        // Given
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        ObjectNode locationNode = objectMapper.createObjectNode()
+                .put("lat", "invalid")
+                .put("lon", "invalid");
+        responseBody.add(locationNode);
+
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Format invalide des coordonnées pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+
+    @Test
+    void testGeocodeAddress_NonValueNodeCoordinates() {
+        // Given
+        ArrayNode responseBody = objectMapper.createArrayNode();
+        ObjectNode locationNode = objectMapper.createObjectNode();
+        locationNode.putArray("lat");  // Crée un tableau vide au lieu d'une valeur
+        locationNode.putObject("lon"); // Crée un objet vide au lieu d'une valeur
+        responseBody.add(locationNode);
+
+        when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When & Then
+        GeocodingException exception = assertThrows(GeocodingException.class, () -> {
+            geocodingService.geocodeAddress(TEST_ADDRESS);
+        });
+        assertEquals("Coordonnées manquantes dans la réponse pour l'adresse : " + TEST_ADDRESS, 
+                    exception.getMessage());
+    }
+}

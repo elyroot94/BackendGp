@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureHttpGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import org.springframework.data.mongodb.core.MongoTemplate;
-
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration(classes = {TestIntroGraphqlApplication.class})
 @ActiveProfiles("test")
 @Slf4j
-public class TrajetResolverTest {
+class TrajetResolverTest {
 
 
     private static final Logger logger = org.slf4j.LoggerFactory.getLogger(TrajetResolverTest.class);
@@ -50,18 +48,6 @@ public class TrajetResolverTest {
     Trajet createdTrajet;
 
 
-
-
-    @Autowired
-    private MongoTemplate mongoTemplate;
-
-    private Trajet trajet;
-    private static final String TEST_DATE = "2024-03-29T10:00:00";
-
-    @BeforeEach
-    void setUp() throws InterruptedException {
-
-    }
 
 
     /**
@@ -155,7 +141,7 @@ public class TrajetResolverTest {
                 .get();
 
         // Verify the result
-        assertThat(trajets.size()).isEqualTo(1);
+        assertThat(trajets).hasSize(1);
         Trajet t = trajets.getFirst();
         assertThat(t.getPointDepart()).isEqualTo("Paris");
         assertThat(t.getPointArrivee()).isEqualTo("Nouakchott");
@@ -194,7 +180,7 @@ public class TrajetResolverTest {
                 .get();
 
         // Verify that one trajet is returned
-        assertThat(trajets.size()).isEqualTo(1);
+        assertThat(trajets).hasSize(1);
 
         // Retrieve the first trajet and verify its details
         Trajet t = trajets.getFirst();

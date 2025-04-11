@@ -1,7 +1,7 @@
 package gp.aichagp.unitaires;
 
 import gp.aichagp.models.User;
-import gp.aichagp.models.UserInput;
+import gp.aichagp.dto.UserInput;
 import gp.aichagp.resolvers.GPResolver;
 import gp.aichagp.services.GPService;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,11 +15,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class GPResolverTest {
+class GPResolverTest {
 
     @Mock
     private GPService gpService;
@@ -45,7 +44,7 @@ public class GPResolverTest {
         String ville = "Paris";
         double rayonKm = 10.0;
 
-        when(gpService.findGPProches(eq(ville), eq(rayonKm)))
+        when(gpService.findGPProches(ville, rayonKm))
             .thenReturn(List.of(gp));
 
         // When
@@ -54,8 +53,8 @@ public class GPResolverTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("John", result.get(0).getNom());
-        assertEquals("GP", result.get(0).getRole());
+        assertEquals("John", result.getFirst().getNom());
+        assertEquals("GP", result.getFirst().getRole());
     }
 
     @Test
@@ -65,7 +64,7 @@ public class GPResolverTest {
         String pointArrivee = "Lyon";
         double rayonKm = 10.0;
 
-        when(gpService.findGPParTrajet(eq(pointDepart), eq(pointArrivee), eq(rayonKm)))
+        when(gpService.findGPParTrajet(pointDepart, pointArrivee, rayonKm))
             .thenReturn(List.of(gp));
 
         // When
@@ -74,8 +73,8 @@ public class GPResolverTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("John", result.get(0).getNom());
-        assertEquals("GP", result.get(0).getRole());
+        assertEquals("John", result.getFirst().getNom());
+        assertEquals("GP", result.getFirst().getRole());
     }
 
     @Test

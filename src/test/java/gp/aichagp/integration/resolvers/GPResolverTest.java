@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ContextConfiguration(classes = {TestIntroGraphqlApplication.class})
 @ActiveProfiles("test")
-public class GPResolverTest {
+class GPResolverTest {
 
 
     @Autowired
@@ -45,11 +45,6 @@ public class GPResolverTest {
     // Déclaration du record ici, local au test
     record GPInfo(String nom, String email, String adresse, String role) {}
 
-    @BeforeEach
-    void setUp() {
-
-    }
-
 
     /**
      * Tests the searchGPProches method of the GPResolver
@@ -60,8 +55,7 @@ public class GPResolverTest {
         // Clean DB
         this.userRepository.deleteAll();
         // Given
-        String ville = "Paris";
-        double rayonKm = 10.0;
+
 
         // Create two GPs with different locations
         User gp1 = new User();
@@ -121,7 +115,7 @@ public class GPResolverTest {
             // Given
             String pointDepart = "Paris";
             String pointArrivee = "Lyon";
-            double rayonKm = 10.0;
+
 
             // Création du trajet avec format de date ISO (RFC 3339 / ISO 8601)
 
@@ -166,7 +160,7 @@ public class GPResolverTest {
                     .get();
 
             assertThat(users).isNotEmpty();
-            assertThat(users.get(0).email()).isEqualTo("test@example.com");
+            assertThat(users.getFirst().email()).isEqualTo("test@example.com");
         }
 
     /**

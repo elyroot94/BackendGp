@@ -1,4 +1,4 @@
-package gp.aichagp.models;
+package gp.aichagp.dto;
 
 public record TrajetInput(
     String pointDepart,

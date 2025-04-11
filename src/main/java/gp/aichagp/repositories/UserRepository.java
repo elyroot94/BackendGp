@@ -4,8 +4,6 @@ import gp.aichagp.models.User;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.Point;
 import java.util.List;
 import java.util.Optional;
 

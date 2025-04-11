@@ -1,7 +1,7 @@
 package gp.aichagp.resolvers;
 
 import gp.aichagp.models.User;
-import gp.aichagp.models.UserInput;
+import gp.aichagp.dto.UserInput;
 import gp.aichagp.services.GPService;
 import gp.aichagp.exceptions.UserRegistrationException;
 import org.springframework.graphql.data.method.annotation.Argument;

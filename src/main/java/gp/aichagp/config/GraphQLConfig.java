@@ -8,6 +8,7 @@ import graphql.schema.Coercing;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+
 @Configuration
 public class GraphQLConfig {
 
@@ -29,20 +30,20 @@ public class GraphQLConfig {
                         if (input == null) {
                             return null;
                         }
-                        if (input instanceof LocalDateTime) {
-                            return ((LocalDateTime) input).format(formatter);
-                        } else if (input instanceof String) {
+                        if (input instanceof LocalDateTime dateTime) {
+                            return dateTime.format(formatter);
+                        } else if (input instanceof String string) {
                             // Cas où l'entité aurait gardé la date en String
-                            return (String) input;
+                            return string;
                         }
                         throw new IllegalArgumentException("Value must be LocalDateTime or ISO String");
                     }
 
                     @Override
                     public LocalDateTime parseValue(Object input) {
-                        if (input instanceof String) {
+                        if (input instanceof String string) {
                             try {
-                                return LocalDateTime.parse((String) input, formatter);
+                                return LocalDateTime.parse(string, formatter);
                             } catch (DateTimeParseException e) {
                                 throw new IllegalArgumentException("Invalid date format. Use yyyy-MM-dd'T'HH:mm:ss");
                             }
