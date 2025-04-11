@@ -1,6 +1,7 @@
 import openai
 import json
 import os
+from pathlib import Path
 
 SYSTEM_PROMPT = """Tu es un expert Java/Spring assistant des développeurs.
 Tu DOIS :
@@ -8,6 +9,12 @@ Tu DOIS :
 2. Proposer du code valide pour Spring Boot 3+
 3. Expliquer chaque changement clairement
 4. Donner des alternatives si pertinent"""
+
+def save_suggestions(suggestions):
+    output_path = Path(__file__).parent.parent / "ai_suggestions.json"
+    with open(output_path, 'w') as f:
+        json.dump(suggestions, f, indent=2)
+    print(f"Suggestions saved to {output_path.absolute()}")
 
 def generate_prompt(issue):
     return f"""
@@ -65,3 +72,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    save_suggestions(suggestions)

@@ -106,7 +106,10 @@ jobs:
       # Nouvelle étape 5.3: Analyse IA
       - name: AI Code Review
         if: success() && github.event_name == 'pull_request'
-        run: python .github/scripts/ai_code_review.py
+        run: |
+          python .github/scripts/ai_code_review.py
+          ls -la  # Liste les fichiers pour vérification
+          cat ai_suggestions.json  # Affiche le contenu pour debug
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
