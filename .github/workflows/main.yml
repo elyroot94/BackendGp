@@ -79,6 +79,7 @@ jobs:
         if: success()
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           mvn sonar:sonar \
           -Dsonar.projectKey=elyroot94_BackendGp \
