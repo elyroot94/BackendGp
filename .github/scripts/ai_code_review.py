@@ -31,19 +31,6 @@ def generate_prompt(issue):
     1. Propose une solution implémentable
     2. Explique pourquoi ça résout le problème
     3. Donne une alternative si applicable
-
-    **Format de réponse**:
-    ```markdown
-    ### Solution recommandée
-    [Détails]
-
-    ```java
-    [Code]
-    ```
-
-    ### Explication
-    [Justification technique]
-    ```
     """
 
 def main():
@@ -53,25 +40,30 @@ def main():
         issues = json.load(f)
 
     suggestions = []
-    for issue in issues[:10]:  # Limite pour contrôle des coûts
+    for issue in issues[:5]:  # Réduisez le nombre de requêtes
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",  # Modèle plus accessible
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": generate_prompt(issue)}
                 ],
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=1500
             )
 
             suggestions.append({
                 **issue,
                 "ai_suggestion": response.choices[0].message.content
             })
+            print(f"Traitement réussi pour {issue['rule']}")
 
         except Exception as e:
-            print(f"Erreur lors du traitement de l'issue {issue['rule']}: {str(e)}")
-            continue
+            print(f"Erreur sur {issue['rule']}: {str(e)}")
+            suggestions.append({
+                **issue,
+                "ai_suggestion": f"Erreur d'analyse: {str(e)}"
+            })
 
     save_suggestions(suggestions)
 
