@@ -31,12 +31,6 @@ jobs:
         with:
           fetch-depth: 0  # Important pour SonarQube
 
-      # Étape 1.5: Installation des dépendances Python (NOUVELLE ÉTAPE À AJOUTER ICI)
-      - name: Setup Python environment
-        run: |
-         python -m pip install --upgrade pip
-         pip install --upgrade openai python-dotenv
-
       # Étape 2: Configuration de Java
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -89,78 +83,6 @@ jobs:
           -Dsonar.analysis.mode=publish \
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
           
-
-      # Nouvelle étape 5.1: Attendre le traitement SonarQube
-      - name: Wait for SonarQube
-        uses: fountainhead/action-wait-for-check@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'SonarQube'
-          timeoutSeconds: 300
-
-      # Nouvelle étape 5.2: Récupérer les problèmes
-      - name: Fetch SonarQube Issues
-        run: python .github/scripts/sonarqube_issues.py
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      # Nouvelle étape 5.3: Analyse IA
-      - name: AI Code Review
-        if: success() && github.event_name == 'pull_request'
-        run: |
-          python .github/scripts/ai_code_review.py
-          ls -la  # Liste les fichiers pour vérification
-          cat ai_suggestions.json  # Affiche le contenu pour debug
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      # Nouvelle étape 5.4: Post-traitement
-      - name: Process Results
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            // Lire les résultats
-            const issuesPath = path.join(process.env.GITHUB_WORKSPACE, 'sonarqube_issues.json');
-            const suggestionsPath = path.join(process.env.GITHUB_WORKSPACE, 'ai_suggestions.json');
-            
-            try {
-              const issues = JSON.parse(fs.readFileSync(issuesPath, 'utf8'));
-              const suggestions = JSON.parse(fs.readFileSync(suggestionsPath, 'utf8'));
-            
-              // Créer un rapport consolidé
-              let report = `## 🔍 Rapport d'analyse qualité\n`;
-              report += `**Problèmes trouvés**: ${issues.length}\n`;
-              report += `**Suggestions générées**: ${suggestions.length}\n\n`;
-            
-              // Ajouter les suggestions par fichier
-              suggestions.forEach(sugg => {
-                report += `### 🛠 ${sugg.file}\n`;
-                report += `**Règle**: ${sugg.rule} (${sugg.severity})\n`;
-                report += `${sugg.suggestion}\n---\n`;
-              });
-            
-              // Poste en commentaire ou dans une issue
-              if (context.payload.pull_request) {
-                await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: report
-                });
-              } else {
-                await github.rest.issues.create({
-                  title: `Rapport qualité ${new Date().toISOString()}`,
-                  body: report,
-                  labels: ['code-quality']
-                });
-              }
-            } catch (error) {
-              core.setFailed(`Error processing results: ${error}`);
-            }
-      
 
       # Étape 6: Arrêt des services sur le VPS
       - name: Stop Services on VPS

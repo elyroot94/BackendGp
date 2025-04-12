@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TrajetResolverTest {
+ class TrajetResolverTest {
 
     @Mock
     private TrajetService trajetService;
@@ -97,7 +97,7 @@ public class TrajetResolverTest {
         String invalidDate = "2024-03-29"; // Format incorrect
 
         // When & Then
-        assertThrows(TrajetValidationException.class, () -> {
+        assertThrows(DateFormatException.class, () -> {
             trajetResolver.searchTrajets(pointDepart, pointArrivee, invalidDate);
         });
         verify(trajetService, never()).searchTrajets(any(), any(), any());

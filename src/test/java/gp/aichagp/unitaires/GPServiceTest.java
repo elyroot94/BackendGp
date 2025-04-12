@@ -1,5 +1,7 @@
 package gp.aichagp.unitaires;
 
+import gp.aichagp.exceptions.DateFormatException;
+import gp.aichagp.exceptions.UserRegistrationException;
 import gp.aichagp.models.User;
 import gp.aichagp.models.Trajet;
 import gp.aichagp.repositories.TrajetRepository;
@@ -13,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +51,6 @@ class GPServiceTest {
         gp.setPrenom("Doe");
         gp.setEmail("john.doe@example.com");
         gp.setTelephone("0123456789");
-        gp.setPassword("password");
         gp.setRole("GP");
         gp.setAdresse("Paris");
         gp.setLocation(new double[]{2.3522, 48.8566});
@@ -84,7 +86,7 @@ class GPServiceTest {
     @Test
     void testRegisterGPWithNullUser() {
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(UserRegistrationException.class, () -> {
             gpService.registerGP(null);
         });
     }
@@ -95,10 +97,12 @@ class GPServiceTest {
         gp.setRole("INVALID");
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(UserRegistrationException.class, () -> {
             gpService.registerGP(gp);
         });
     }
+
+
 
     @Test
     void testFindGPProches() {
@@ -227,5 +231,117 @@ class GPServiceTest {
         assertThrows(IllegalArgumentException.class, () -> {
             gpService.getGPById(id);
         });
+    }
+
+    @Test
+    void testRegisterGPWithEmptyEmail() {
+        // Given
+        gp.setEmail("");
+
+        // When & Then
+        assertThrows(UserRegistrationException.class, () -> {
+            gpService.registerGP(gp);
+        });
+    }
+
+    @Test
+    void testRegisterGPWithNullEmail() {
+        // Given
+        gp.setEmail(null);
+
+        // When & Then
+        assertThrows(UserRegistrationException.class, () -> {
+            gpService.registerGP(gp);
+        });
+    }
+
+    @Test
+    void testRegisterGPWhenGeocodingFails() {
+        // Given
+        when(geocodingService.geocodeAddress(anyString()))
+                .thenThrow(new RuntimeException("Geocoding failed"));
+
+        // When & Then
+        assertThrows(UserRegistrationException.class, () -> {
+            gpService.registerGP(gp);
+        });
+    }
+
+    @Test
+    void testFindGPProchesWithEmptyCity() {
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> {
+            gpService.findGPProches("", 10.0);
+        });
+    }
+
+    @Test
+    void testFindGPProchesWithInvalidRadius() {
+        // When & Then
+        assertAll(
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findGPProches("Paris", 0);
+                }),
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findGPProches("Paris", -5);
+                })
+        );
+    }
+
+    @Test
+    void testFindTrajetsProches() {
+        // Given
+        String pointDepart = "Paris";
+        String pointArrivee = "Lyon";
+        String dateDepart = "2025-01-01T10:00:00";
+        double rayonKm = 10.0;
+        double[] coordinates = {2.3522, 48.8566};
+
+        Trajet trajet = new Trajet();
+        trajet.setPointDepart(pointDepart);
+        trajet.setPointArrivee(pointArrivee);
+
+        when(geocodingService.geocodeAddress(pointDepart)).thenReturn(coordinates);
+        when(userRepository.findNearbyGP("GP", coordinates, rayonKm * 1000))
+                .thenReturn(List.of(gp));
+        when(trajetRepository.findByPointDepartAndPointArriveeAndDateDepartGreaterThanEqual(
+                pointDepart, pointArrivee, LocalDateTime.parse(dateDepart)))
+                .thenReturn(List.of(trajet));
+
+        // When
+        List<Trajet> result = gpService.findTrajetsProches(
+                pointDepart, pointArrivee, dateDepart, rayonKm);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(geocodingService, times(1)).geocodeAddress(pointDepart);
+    }
+
+    @Test
+    void testFindTrajetsProchesWithInvalidDate() {
+        // When & Then
+        assertThrows(DateFormatException.class, () -> {
+            gpService.findTrajetsProches("Paris", "Lyon", "invalid-date", 10.0);
+        });
+    }
+
+    @Test
+    void testFindTrajetsProchesParameterValidation() {
+        // Test all parameter validation cases
+        assertAll(
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findTrajetsProches(null, "Lyon", "2025-01-01T10:00:00", 10.0);
+                }),
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findTrajetsProches("Paris", null, "2025-01-01T10:00:00", 10.0);
+                }),
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findTrajetsProches("Paris", "Lyon", null, 10.0);
+                }),
+                () -> assertThrows(IllegalArgumentException.class, () -> {
+                    gpService.findTrajetsProches("Paris", "Lyon", "2025-01-01T10:00:00", 0);
+                })
+        );
     }
 } 

@@ -5,10 +5,8 @@ import gp.aichagp.exceptions.TrajetValidationException;
 import gp.aichagp.models.Trajet;
 import gp.aichagp.dto.TrajetInput;
 
-import gp.aichagp.repositories.UserRepository;
 import gp.aichagp.services.TrajetService;
 import gp.aichagp.services.GPService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -26,12 +24,13 @@ public class TrajetResolver {
     private final TrajetService trajetService;
     private final GPService gpService;
 
-     @Autowired
-    private UserRepository userRepository;
+
 
     public TrajetResolver(TrajetService trajetService, GPService gpService) {
         this.trajetService = trajetService;
         this.gpService = gpService;
+
+
     }
 
     @QueryMapping
@@ -79,6 +78,8 @@ public class TrajetResolver {
             throw new TrajetValidationException("Les données du trajet sont obligatoires");
         }
 
+        validateDateFormat(input.dateDepart());
+
         // Conversion de la date
         LocalDateTime dateDepart;
         try {
@@ -114,9 +115,9 @@ public class TrajetResolver {
             throw new TrajetValidationException("La date de départ est obligatoire");
         }
         try {
-            LocalDateTime.parse(dateDepart, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+            LocalDateTime.parse(dateDepart, DateTimeFormatter.ISO_DATE_TIME);
         } catch (DateTimeParseException e) {
-            throw new TrajetValidationException("Le format de la date doit être YYYY-MM-DDTHH:mm:ss (exemple: 2024-03-29T10:00:00)");
+            throw new DateFormatException("Le format de la date doit être YYYY-MM-DDTHH:mm:ss (exemple: 2024-03-29T10:00:00)");
         }
     }
 } 

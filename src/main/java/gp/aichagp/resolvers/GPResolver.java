@@ -3,7 +3,6 @@ package gp.aichagp.resolvers;
 import gp.aichagp.models.User;
 import gp.aichagp.dto.UserInput;
 import gp.aichagp.services.GPService;
-import gp.aichagp.exceptions.UserRegistrationException;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -42,20 +41,15 @@ public class GPResolver {
 
     @MutationMapping
     public User registerGP(@Argument("input") UserInput input) {
-        try {
+
             User gp = new User();
             gp.setNom(input.nom());
             gp.setPrenom(input.prenom());
             gp.setEmail(input.email());
             gp.setTelephone(input.telephone());
-            gp.setPassword(input.password());
             gp.setRole(input.role());
             gp.setAdresse(input.adresse());
             return gpService.registerGP(gp);
-        } catch (UserRegistrationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new UserRegistrationException("Erreur lors de l'enregistrement du GP : " + e.getMessage());
-        }
+
     }
 } 

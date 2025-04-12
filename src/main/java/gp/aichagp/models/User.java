@@ -22,7 +22,6 @@ public class User {
     private String prenom;
     private String email;
     private String telephone;
-    private String password;
     private String role; // "GP" ou "Expéditeur"
     private Boolean verificationIdentite = false;
     private String documentsIdentite;

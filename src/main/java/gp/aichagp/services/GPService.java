@@ -33,15 +33,15 @@ public class GPService {
     
     public User registerGP(User gp) {
         if (gp == null) {
-            throw new IllegalArgumentException("Le GP ne peut pas être null");
+            throw new UserRegistrationException("Le GP ne peut pas être null");
         }
 
         if (gp.getEmail() == null || gp.getEmail().trim().isEmpty()) {
-            throw new IllegalArgumentException("L'email est obligatoire");
+            throw new UserRegistrationException("L'email est obligatoire");
         }
 
         if (!"GP".equals(gp.getRole())) {
-            throw new IllegalArgumentException("Le rôle doit être 'GP'");
+            throw new UserRegistrationException("Le rôle doit être 'GP'");
         }
 
         // Vérifier si l'email existe déjà
