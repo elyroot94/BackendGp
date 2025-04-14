@@ -28,10 +28,6 @@ public class Trajet {
     private Double kilosDisponibles;
     private String gpId; // Référence au GP qui propose ce trajet
 
-    public String getDateDepart() {
-        return dateDepart != null ?
-                dateDepart.format(DateTimeFormatter.ISO_DATE_TIME) :
-                null;
-    }
+
 }
 

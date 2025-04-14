@@ -14,8 +14,6 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Controller
@@ -43,7 +41,6 @@ public class TrajetResolver {
             @Argument String pointDepart,
             @Argument String pointArrivee,
             @Argument String dateDepart) {
-        validateDateFormat(dateDepart);
         return trajetService.searchTrajets(pointDepart, pointArrivee, dateDepart);
     }
 
@@ -53,7 +50,7 @@ public class TrajetResolver {
             @Argument String pointArrivee,
             @Argument String dateDepart,
             @Argument double rayonKm) {
-        validateDateFormat(dateDepart);
+
         return gpService.findTrajetsProches(pointDepart, pointArrivee, dateDepart, rayonKm);
     }
 
@@ -78,23 +75,9 @@ public class TrajetResolver {
             throw new TrajetValidationException("Les données du trajet sont obligatoires");
         }
 
-        validateDateFormat(input.dateDepart());
-
-        // Conversion de la date
-        LocalDateTime dateDepart;
-        try {
-            dateDepart = LocalDateTime.parse(
-                    input.dateDepart(),
-                    DateTimeFormatter.ISO_DATE_TIME
-            );
-        } catch (DateTimeParseException e) {
-            throw new DateFormatException(
-                    "Format de date invalide. Utilisez le format ISO-8601 (ex: 2025-12-31T10:00:00)"
-            );
-        }
 
         // Validation date future
-        if (dateDepart.isBefore(LocalDateTime.now())) {
+        if (input.dateDepart().isBefore(LocalDateTime.now())) {
             throw new TrajetValidationException("La date de départ ne peut pas être dans le passé");
         }
 
@@ -102,7 +85,7 @@ public class TrajetResolver {
         Trajet trajet = new Trajet();
         trajet.setPointDepart(input.pointDepart());
         trajet.setPointArrivee(input.pointArrivee());
-        trajet.setDateDepart(dateDepart); // LocalDateTime directement
+        trajet.setDateDepart(input.dateDepart()); // LocalDateTime directement
         trajet.setCapaciteMaxKilos(input.capaciteMaxKilos());
         trajet.setKilosDisponibles(input.kilosDisponibles());
         trajet.setGpId(input.gpId());
@@ -110,14 +93,5 @@ public class TrajetResolver {
         return trajetService.createTrajet(trajet);
     }
 
-    private void validateDateFormat(String dateDepart) {
-        if (dateDepart == null) {
-            throw new TrajetValidationException("La date de départ est obligatoire");
-        }
-        try {
-            LocalDateTime.parse(dateDepart, DateTimeFormatter.ISO_DATE_TIME);
-        } catch (DateTimeParseException e) {
-            throw new DateFormatException("Le format de la date doit être YYYY-MM-DDTHH:mm:ss (exemple: 2024-03-29T10:00:00)");
-        }
-    }
+
 } 

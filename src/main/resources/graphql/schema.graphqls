@@ -1,3 +1,8 @@
+
+"Type personnalisé pour les dates et heures"
+scalar LocalDateTime
+scalar LocalDate
+
 """
 Représente un utilisateur dans le système, qui peut être soit un client soit un GP (Grand Public).
 """
@@ -43,9 +48,9 @@ type Coli {
     "Statut actuel du colis (ex: EN_ATTENTE, EN_COURS, LIVRE)"
     statut: String!
     "Date de création du colis"
-    dateCreation: DateTime!
+    dateCreation: LocalDateTime!
     "Date de livraison effective ou prévue"
-    dateLivraison: DateTime
+    dateLivraison: LocalDateTime
     "Nom du destinataire"
     destinataireNom: String!
     "Téléphone du destinataire"
@@ -71,9 +76,9 @@ type Trajet {
     "Point d'arrivée du trajet"
     pointArrivee: String!
     "Date et heure de départ"
-    dateDepart: DateTime!
+    dateDepart: LocalDateTime!
     "Date et heure d'arrivée estimée"
-    dateArriveeEstimee: DateTime
+    dateArriveeEstimee: LocalDateTime
     "Capacité maximale en kilogrammes"
     capaciteMaxKilos: Float!
     "Kilogrammes encore disponibles"
@@ -111,7 +116,7 @@ input TrajetInput {
     "Point d'arrivée du trajet"
     pointArrivee: String!
     "Date et heure de départ (format: YYYY-MM-DDTHH:mm:ss)"
-    dateDepart: String!
+    dateDepart: LocalDateTime!
     "Capacité maximale en kilogrammes"
     capaciteMaxKilos: Float!
     "Kilogrammes disponibles initialement"
@@ -126,58 +131,58 @@ Requêtes disponibles dans l'API.
 type Query {
     "Récupère tous les trajets disponibles"
     getAllTrajets: [Trajet!]!
-    
+
     """
     Recherche des trajets selon des critères spécifiques
     """
     searchTrajets(
         "Ville de départ"
-        pointDepart: String, 
+        pointDepart: String,
         "Ville d'arrivée"
-        pointArrivee: String, 
+        pointArrivee: String,
         "Date de départ (format: YYYY-MM-DDTHH:mm:ss)"
         dateDepart: String
     ): [Trajet!]!
-    
+
     """
     Recherche des trajets proches d'un point géographique
     """
     searchTrajetsProches(
         "Ville de départ"
-        pointDepart: String!, 
+        pointDepart: String!,
         "Ville d'arrivée"
-        pointArrivee: String!, 
+        pointArrivee: String!,
         "Date de départ (format: YYYY-MM-DDTHH:mm:ss)"
-        dateDepart: String!, 
+        dateDepart: String!,
         "Rayon de recherche en kilomètres"
         rayonKm: Float!
     ): [Trajet!]!
-    
+
     "Récupère un trajet par son ID"
     trajet(id: ID!): Trajet
-    
+
     """
     Recherche des GP proches d'une ville
     """
     searchGPProches(
         "Ville de recherche"
-        ville: String!, 
+        ville: String!,
         "Rayon de recherche en kilomètres"
         rayonKm: Float!
     ): [User!]!
-    
+
     """
     Recherche des GP disponibles sur un trajet
     """
     searchGPParTrajet(
         "Point de départ"
-        pointDepart: String!, 
+        pointDepart: String!,
         "Point d'arrivée"
-        pointArrivee: String!, 
+        pointArrivee: String!,
         "Rayon de recherche en kilomètres"
         rayonKm: Float!
     ): [User!]!
-    
+
     "Récupère un GP par son ID"
     getGPById(id: ID!): User
 }
@@ -192,5 +197,3 @@ type Mutation {
     createTrajet(input: TrajetInput!): Trajet!
 }
 
-"Type personnalisé pour les dates et heures"
-scalar DateTime 
