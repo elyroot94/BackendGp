@@ -1,4 +1,3 @@
-
 package gp.aichagp.config;
 
 import graphql.GraphQLContext;
@@ -20,12 +19,13 @@ import java.util.Locale;
 
 @Component
 public class LocalDateTimeScalar {
+    private LocalDateTimeScalar() {}
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     public static GraphQLScalarType createLocalDateTimeScalar() {
         return GraphQLScalarType.newScalar()
                 .name("LocalDateTime")
-                .description("Custom scalar for handling LocalDateTime in format 'yyyy-MM-ddTHH:mm'")
+                .description("Custom scalar for handling LocalDateTime in format 'yyyy-MM-ddTHH:mm:ss[.SSS]'")
                 .coercing(new Coercing<LocalDateTime, String>() {
 
                     @Override
@@ -43,7 +43,7 @@ public class LocalDateTimeScalar {
                                 return LocalDateTime.parse(dateTimeStr, FORMATTER);
                             } catch (DateTimeParseException e) {
                                 throw new CoercingParseValueException(
-                                        "Invalid LocalDateTime format. Expected"+ FORMATTER, e);
+                                        "Invalid LocalDateTime format. Expected '" + FORMATTER + "'.", e);
                             }
                         }
                         throw new CoercingParseValueException("Expected a String value for LocalDateTime.");
@@ -56,7 +56,7 @@ public class LocalDateTimeScalar {
                                 return LocalDateTime.parse(stringValue.getValue(), FORMATTER);
                             } catch (DateTimeParseException e) {
                                 throw new CoercingParseLiteralException(
-                                        "Invalid LocalDateTime literal. Expected "+ FORMATTER, e);
+                                        "Invalid LocalDateTime literal. Expected '" + FORMATTER + "'.", e);
                             }
                         }
                         throw new CoercingParseLiteralException("Expected a StringValue for LocalDateTime literal.");

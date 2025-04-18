@@ -22,9 +22,11 @@ class LocalDateTimeScalarIntegrationTest {
     @Test
     void shouldHandleLocalDateTimeThroughGraphQL() {
         // Arrange
-        String schema = "scalar LocalDateTime\n" +
-                "type Query { testDateTime: LocalDateTime }\n" +
-                "type Mutation { echoDateTime(input: LocalDateTime!): LocalDateTime }";
+        String schema = """ 
+                scalar LocalDateTime
+                type Query { testDateTime: LocalDateTime }
+                type Mutation { echoDateTime(input: LocalDateTime!): LocalDateTime }
+                """;
 
         RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
                 .scalar(LocalDateTimeScalar.createLocalDateTimeScalar())
@@ -67,9 +69,11 @@ class LocalDateTimeScalarIntegrationTest {
     @Test
     void shouldHandleLocalDateThroughGraphQL() {
         // Arrange
-        String schema = "scalar LocalDate\n" +
-                "type Query { testDate: LocalDate }\n" +
-                "type Mutation { echoDate(input: LocalDate!): LocalDate }";
+        String schema = """
+                scalar LocalDate\s
+                type Query { testDate: LocalDate }\s
+                type Mutation { echoDate(input: LocalDate!): LocalDate }
+               \s""";
 
         RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring()
                 .scalar(LocalDateScalar.createLocalDateScalar())
@@ -109,6 +113,5 @@ class LocalDateTimeScalarIntegrationTest {
                 "Expected date in response but got: " + result);
     }
 
-
-
+  
 }
