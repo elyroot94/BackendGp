@@ -23,5 +23,6 @@ public class Coli {
     private String qrCode;
     private String codeUnique;
     private String expediteurId;
-    private User gp; // Stocke le GP en tant que sous-document
+    private String gpId; // Stocke le GP en tant que sous-document
+    private String trajetId;
 }

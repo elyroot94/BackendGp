@@ -1,0 +1,36 @@
+services:
+  app:
+    image: openjdk:21-jdk-slim
+    container_name: aichagp-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # Redirection du port 8080 du conteneur vers l'hôte
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/aichagpdb
+    depends_on:
+      - mongo
+    networks:
+      - springboot_network
+
+  mongo:
+    image: mongo:6.0
+    container_name: aichagp-mongodb
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017" # Redirection du port MongoDB
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - springboot_network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  springboot_network:
+    driver: bridge

@@ -1,17 +1,18 @@
 package gp.aichagp.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "utilisateurs")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -22,10 +23,15 @@ public class User {
     private String email;
     private String telephone;
     private String role; // "GP" ou "Expéditeur"
-    private boolean verificationIdentite;
+    private Boolean verificationIdentite = false;
     private String documentsIdentite;
-    private Double capaciteMaxKilos; // Utilisé uniquement si role = "GP"
-    private Double kilosDisponibles;
-    private List<Trajet> trajets;
-    private List<Coli> listeColisAcceptes;
+    @DBRef
+    private List<Trajet> trajets = new ArrayList<>();
+    private List<Coli> listeColisAcceptes = new ArrayList<>();
+    
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private double[] location; // [longitude, latitude]
+    private String adresse;
+
+
 }

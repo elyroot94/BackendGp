@@ -1,0 +1,164 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0.2
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 40s
+
+    steps:
+      # Étape 1: Checkout du code
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Important pour SonarQube
+
+      # Étape 2: Configuration de Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Étape 3: Nettoyage et vérification des dépendances
+      - name: Clean and Verify Dependencies
+        run: |
+          mvn clean dependency:purge-local-repository
+          mvn dependency:go-offline
+          mvn dependency:resolve
+
+      # Étape 4: Build et Tests
+      - name: Build and Run Tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          MONGO_URI: mongodb://admin:password@localhost:27017/test
+          MAVEN_OPTS: -Xmx2048m -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+          SPRING_DATA_MONGODB_URI: mongodb://admin:password@localhost:27017/test
+        run: |
+          mvn clean verify -U \
+          -Dspring.profiles.active=test \
+          -DskipTests=false \
+          -Dmaven.test.failure.ignore=false \
+          -Dmaven.test.error.ignore=false \
+          -Dmaven.test.skip=false \
+          -Dmaven.javadoc.skip=true \
+          -Dmaven.source.skip=true \
+          -Dmaven.site.skip=true \
+          -Dmaven.artifact.threads=4 \
+          -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+          -Dspring.data.mongodb.uri=mongodb://admin:password@localhost:27017/test \
+          -Dspring.data.mongodb.auto-index-creation=true
+
+      # Étape 5: Analyse SonarQube
+      - name: SonarQube Analysis
+        if: success()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          mvn sonar:sonar \
+          -Dsonar.projectKey=elyroot94_BackendGp \
+          -Dsonar.organization=elyroot94 \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+          -Dsonar.analysis.mode=publish \
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          
+
+      # Étape 6: Arrêt des services sur le VPS
+      - name: Stop Services on VPS
+        if: success()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/gestion-colis
+
+            echo "Stopping all running services..."
+            docker compose stop || true
+            docker compose down || true
+
+            # Vérifier si une opération de prune est déjà en cours
+            if ! docker system prune --filter until=1m --dry-run | grep -q "Total reclaimed"; then
+              echo "No prune operation in progress, proceeding with cleanup..."
+              echo "Cleaning up Docker system..."
+              docker system prune -f
+            else
+              echo "A prune operation is already running. Skipping cleanup."
+            fi
+
+            echo "Services stopped successfully"
+
+      # Étape 7: Déploiement sur le VPS
+      - name: Copy deployment files to VPS
+        if: success()
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          source: "."
+          target: "/opt/gestion-colis/"
+          strip_components: 0
+
+      - name: Deploy to VPS
+        if: success()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.TEST_SERVER_HOST }}
+          username: ${{ secrets.TEST_SERVER_USERNAME }}
+          key: ${{ secrets.TEST_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p /opt/gestion-colis
+            cd /opt/gestion-colis
+            
+            if [ -f logs/app.log ]; then
+              mv logs/app.log logs/app.log.$(date +%Y%m%d_%H%M%S)
+            fi
+            
+            cat << EOF > .env
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            TAG=${{ github.sha }}
+            MONGO_USERNAME=${{ secrets.MONGO_USERNAME }}
+            MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
+            EOF
+            
+            grep -v PASSWORD .env
+            
+            echo "Pulling latest images..."
+            docker compose pull
+            
+            echo "Starting services..."
+            docker compose up -d --build
+            
+            echo "Waiting for services to be healthy..."
+            timeout 300 bash -c 'while [[ "$(docker compose ps --format "{{.Status}}" | grep -c "healthy")" -lt 2 ]]; do sleep 5; done'
+            
+            echo "Checking service status..."
+            docker compose ps
+            
+            echo "Checking recent logs..."
+            docker compose logs --tail=50
